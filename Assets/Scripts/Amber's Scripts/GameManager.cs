@@ -34,12 +34,4 @@ public class GameManager : MonoBehaviour
         currentState = newState;
         OnGameStateChanged?.Invoke(newState);
     }
-
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        // should start off at the main menu
-        currentState = GameState.MainMenu;
-    }
 }
