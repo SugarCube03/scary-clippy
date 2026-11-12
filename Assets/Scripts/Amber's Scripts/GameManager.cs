@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
     }
 
     // update current state and notify subscribers
-    private void ChangeState(GameState newState)
+    public void ChangeState(GameState newState)
     {
         // avoids unnecessary reassignment
         if (currentState == newState)
@@ -35,44 +35,11 @@ public class GameManager : MonoBehaviour
         OnGameStateChanged?.Invoke(newState);
     }
 
-    // call at beginning to start playing
-    public void StartGame()
-    {
-        if (currentState == GameState.MainMenu)
-        {
-            ChangeState(GameState.Playing);
-        }
-    }
-
-    // call to pause game
-    public void PauseGame()
-    {
-        if (currentState == GameState.Playing)
-        {
-            ChangeState(GameState.Paused);
-        }
-    }
-
-    // call to get out of pause screen
-    public void ResumeGame()
-    {
-        if (currentState == GameState.Paused)
-        {
-            ChangeState(GameState.Playing);
-        }
-    }
-
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         // should start off at the main menu
         currentState = GameState.MainMenu;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 }
