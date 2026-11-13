@@ -30,9 +30,13 @@ public class ClippyPlayer : MonoBehaviour
     public float moveSpeed = 5f;
     public float jumpForce = 10f;
     public float interactRange = 1f;
+    public float wallJumpPush = 6f;  // how hard a wall jump pushes Clippy sideways
+    public float wallJumpTime = 0.2f; // how long left/right keys are ignored after a wall jump
     public LayerMask groundLayer;
+    public LayerMask wallLayer;   // walls Clippy can jump off
 
     Rigidbody2D rb;
+    float wallJumpTimer;   // counts down after a wall jump
     IPickable heldItem;   // what Clippy is holding right now (null = nothing)
 
     void Start()
@@ -44,17 +48,34 @@ public class ClippyPlayer : MonoBehaviour
     {
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
+        wallJumpTimer -= Time.deltaTime;
 
         // 1. Move left / right
-        float x = 0f;
-        if (kb.aKey.isPressed) x = -1f;
-        if (kb.dKey.isPressed) x = 1f;
-        rb.linearVelocity = new Vector2(x * moveSpeed, rb.linearVelocity.y);
+        // (skipped for a moment after a wall jump, so the sideways push isn't cancelled)
+        if (wallJumpTimer <= 0f)
+        {
+            float x = 0f;
+            if (kb.aKey.isPressed) x = -1f;
+            if (kb.dKey.isPressed) x = 1f;
+            rb.linearVelocity = new Vector2(x * moveSpeed, rb.linearVelocity.y);
+        }
 
         // 2. Jump (only when standing on the ground)
-        if (kb.spaceKey.wasPressedThisFrame && IsOnGround())
+        if (kb.spaceKey.wasPressedThisFrame)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            int wall = WallSide();
+
+            if (IsOnGround())
+            {
+                // Normal jump: straight up
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            }
+            else if (wall != 0)
+            {
+                // Wall jump: up, and away from the wall
+                rb.linearVelocity = new Vector2(-wall * wallJumpPush, jumpForce);
+                wallJumpTimer = wallJumpTime;
+            }
         }
 
         // 3. Press E
@@ -69,6 +90,15 @@ public class ClippyPlayer : MonoBehaviour
     {
         float distance = GetComponent<Collider2D>().bounds.extents.y + 0.1f;
         return Physics2D.Raycast(transform.position, Vector2.down, distance, groundLayer);
+    }
+
+    // Same idea, sideways. Returns -1 = wall on the left, 1 = wall on the right, 0 = no wall.
+    int WallSide()
+    {
+        float distance = GetComponent<Collider2D>().bounds.extents.x + 0.1f;
+        if (Physics2D.Raycast(transform.position, Vector2.left, distance, wallLayer)) return -1;
+        if (Physics2D.Raycast(transform.position, Vector2.right, distance, wallLayer)) return 1;
+        return 0;
     }
 
     void PressE()
