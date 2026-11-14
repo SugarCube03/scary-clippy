@@ -32,11 +32,14 @@ public class ClippyPlayer : MonoBehaviour
     public float interactRange = 1f;
     public float wallJumpPush = 6f;  // how hard a wall jump pushes Clippy sideways
     public float wallJumpTime = 0.2f; // how long left/right keys are ignored after a wall jump
+    public float wallGraceTime = 0.15f; // how long Clippy still "remembers" a wall after leaving it
     public LayerMask groundLayer;
     public LayerMask wallLayer;   // walls Clippy can jump off
 
     Rigidbody2D rb;
     float wallJumpTimer;   // counts down after a wall jump
+    float wallGraceTimer;  // counts down after leaving a wall
+    int lastTouchedWall;   // side of the last wall touched: -1 = left, 1 = right
     IPickable heldItem;   // what Clippy is holding right now (null = nothing)
 
     void Start()
@@ -44,46 +47,58 @@ public class ClippyPlayer : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
     }
 
-    void Update()
+void Update()
+{
+    Keyboard kb = Keyboard.current;
+    if (kb == null) return;
+    wallJumpTimer -= Time.deltaTime;
+
+    // Remember the last wall Clippy touched, for a short time after leaving it
+    int wall = WallSide();
+    if (wall != 0)
     {
-        Keyboard kb = Keyboard.current;
-        if (kb == null) return;
-        wallJumpTimer -= Time.deltaTime;
+        lastTouchedWall = wall;
+        wallGraceTimer = wallGraceTime;
+    }
+    else
+    {
+        wallGraceTimer -= Time.deltaTime;
+    }
 
-        // 1. Move left / right
-        // (skipped for a moment after a wall jump, so the sideways push isn't cancelled)
-        if (wallJumpTimer <= 0f)
+    // 1. Move left / right
+    // (skipped for a moment after a wall jump, so the sideways push isn't cancelled)
+    float x = 0f;
+    if (kb.aKey.isPressed) x = -1f;
+    if (kb.dKey.isPressed) x = 1f;
+
+    if (wallJumpTimer <= 0f)
+    {
+        rb.linearVelocity = new Vector2(x * moveSpeed, rb.linearVelocity.y);
+    }
+
+    // 2. Jump: normal jump on the ground, wall jump (holding away from the wall) in the air
+    if (kb.spaceKey.wasPressedThisFrame)
+    {
+        if (IsOnGround())
         {
-            float x = 0f;
-            if (kb.aKey.isPressed) x = -1f;
-            if (kb.dKey.isPressed) x = 1f;
-            rb.linearVelocity = new Vector2(x * moveSpeed, rb.linearVelocity.y);
+            // Normal jump: straight up
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
-
-        // 2. Jump (only when standing on the ground)
-        if (kb.spaceKey.wasPressedThisFrame)
+        else if (wallGraceTimer > 0f && x == -lastTouchedWall)
         {
-            int wall = WallSide();
-
-            if (IsOnGround())
-            {
-                // Normal jump: straight up
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-            }
-            else if (wall != 0)
-            {
-                // Wall jump: up, and away from the wall
-                rb.linearVelocity = new Vector2(-wall * wallJumpPush, jumpForce);
-                wallJumpTimer = wallJumpTime;
-            }
-        }
-
-        // 3. Press E
-        if (kb.eKey.wasPressedThisFrame)
-        {
-            PressE();
+            // Wall jump: up, and away from the wall
+            rb.linearVelocity = new Vector2(-lastTouchedWall * wallJumpPush, jumpForce);
+            wallJumpTimer = wallJumpTime;
+            wallGraceTimer = 0f; // one wall touch = one wall jump
         }
     }
+
+    // 3. Press E
+    if (kb.eKey.wasPressedThisFrame)
+    {
+        PressE();
+    }
+}
 
     // Shoot a short invisible line downward. If it hits the ground layer, we are on the ground.
     bool IsOnGround()
