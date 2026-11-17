@@ -21,7 +21,9 @@ public interface IPickable
 
 // ---------------------------------------------------------------
 // Clippy
-// Controls: A/D = move, Space = jump, E = pick up / put down / interact
+// Controls: A/D = move, Space = jump,
+//           Space while holding away from a wall = wall jump,
+//           E = pick up / put down / interact
 // Needs: Rigidbody2D + BoxCollider2D on the same object
 // ---------------------------------------------------------------
 
@@ -30,51 +32,75 @@ public class ClippyPlayer : MonoBehaviour
     public float moveSpeed = 5f;
     public float jumpForce = 10f;
     public float interactRange = 1f;
-    public float wallJumpPush = 6f;  // how hard a wall jump pushes Clippy sideways
-    public float wallJumpTime = 0.2f; // how long left/right keys are ignored after a wall jump
+    public float wallJumpPush = 6f;     // how hard a wall jump pushes Clippy sideways
+    public float wallJumpTime = 0.2f;   // how long left/right keys are ignored after a wall jump
+    public float wallGraceTime = 0.15f; // how long Clippy still "remembers" a wall after leaving it
+    public float deathHeight = -10f;   // falling below this Y position kills Clippy
     public LayerMask groundLayer;
-    public LayerMask wallLayer;   // walls Clippy can jump off
+    public LayerMask wallLayer;         // walls Clippy can jump off
 
     Rigidbody2D rb;
-    float wallJumpTimer;   // counts down after a wall jump
-    IPickable heldItem;   // what Clippy is holding right now (null = nothing)
+    float wallJumpTimer;     // counts down after a wall jump
+    float wallGraceTimer;    // counts down after leaving a wall
+    int lastTouchedWall;     // side of the last wall touched: -1 = left, 1 = right
+    IPickable heldItem;      // what Clippy is holding right now (null = nothing)
+    Vector3 startPosition;   // where Clippy respawns after dying
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        startPosition = transform.position;
     }
 
     void Update()
     {
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
+
+        // Fell off the screen?
+        if (transform.position.y < deathHeight)
+        {
+            Die();
+        }
         wallJumpTimer -= Time.deltaTime;
 
+        // Remember the last wall Clippy touched, for a short time after leaving it
+        int wall = WallSide();
+        if (wall != 0)
+        {
+            lastTouchedWall = wall;
+            wallGraceTimer = wallGraceTime;
+        }
+        else
+        {
+            wallGraceTimer -= Time.deltaTime;
+        }
+
         // 1. Move left / right
-        // (skipped for a moment after a wall jump, so the sideways push isn't cancelled)
+        //    (skipped for a moment after a wall jump, so the sideways push isn't cancelled)
+        float x = 0f;
+        if (kb.aKey.isPressed) x = -1f;
+        if (kb.dKey.isPressed) x = 1f;
+
         if (wallJumpTimer <= 0f)
         {
-            float x = 0f;
-            if (kb.aKey.isPressed) x = -1f;
-            if (kb.dKey.isPressed) x = 1f;
             rb.linearVelocity = new Vector2(x * moveSpeed, rb.linearVelocity.y);
         }
 
-        // 2. Jump (only when standing on the ground)
+        // 2. Jump: normal jump on the ground, wall jump (holding away from the wall) in the air
         if (kb.spaceKey.wasPressedThisFrame)
         {
-            int wall = WallSide();
-
             if (IsOnGround())
             {
                 // Normal jump: straight up
                 rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             }
-            else if (wall != 0)
+            else if (wallGraceTimer > 0f && x == -lastTouchedWall)
             {
                 // Wall jump: up, and away from the wall
-                rb.linearVelocity = new Vector2(-wall * wallJumpPush, jumpForce);
+                rb.linearVelocity = new Vector2(-lastTouchedWall * wallJumpPush, jumpForce);
                 wallJumpTimer = wallJumpTime;
+                wallGraceTimer = 0f; // one wall touch = one wall jump
             }
         }
 
@@ -99,6 +125,14 @@ public class ClippyPlayer : MonoBehaviour
         if (Physics2D.Raycast(transform.position, Vector2.left, distance, wallLayer)) return -1;
         if (Physics2D.Raycast(transform.position, Vector2.right, distance, wallLayer)) return 1;
         return 0;
+    }
+
+    // Called by glitches and traps. Sends Clippy back to the start.
+    public void Die()
+    {
+        Debug.Log("Clippy died");
+        transform.position = startPosition;
+        rb.linearVelocity = Vector2.zero;   // stop all movement
     }
 
     void PressE()
