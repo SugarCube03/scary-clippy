@@ -14,11 +14,12 @@ public class LevelManager : MonoBehaviour
     // completed a new objective
     public void CompleteObjective()
     {
-        completedObjectives++;
+        // guard against overincrementing
+        if (completedObjectives < totalObjectives)
+        {
+            completedObjectives++;
+        }
     }
-
-
-
 
 }
 

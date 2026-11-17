@@ -1,7 +1,10 @@
+using System.Threading.Tasks.Dataflow;
 using UnityEngine;
 
 public class ScreenPiece : MonoBehaviour, IPickable
 {
+    [SerializeField] private CollectibleDestination destination; // added by amber
+
     public void PickUp(Transform player)
     {
         transform.SetParent(player);
@@ -12,5 +15,6 @@ public class ScreenPiece : MonoBehaviour, IPickable
     {
         transform.position = transform.parent.position;
         transform.SetParent(null);
+        destination.HandleDelivery(transform.position); // added by amber
     }
 }
