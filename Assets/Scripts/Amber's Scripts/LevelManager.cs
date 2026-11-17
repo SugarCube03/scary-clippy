@@ -20,7 +20,6 @@ public class LevelManager : MonoBehaviour
             completedObjectives++;
         }
     }
-
 }
 
 
