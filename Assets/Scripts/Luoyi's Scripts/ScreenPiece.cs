@@ -1,4 +1,3 @@
-using System.Threading.Tasks.Dataflow;
 using UnityEngine;
 
 public class ScreenPiece : MonoBehaviour, IPickable
@@ -15,6 +14,11 @@ public class ScreenPiece : MonoBehaviour, IPickable
     {
         transform.position = transform.parent.position;
         transform.SetParent(null);
-        destination.HandleDelivery(transform.position); // added by amber
+
+        // added by amber
+        if (destination != null)
+        {
+            destination.HandleDelivery(transform.position);
+        }
     }
 }
