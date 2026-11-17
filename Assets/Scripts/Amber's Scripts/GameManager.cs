@@ -1,37 +1,14 @@
 using UnityEngine;
-using System;
-
-public enum GameState
-{
-    MainMenu,
-    Playing,
-    Paused,
-    GameOver,
-    Victory
-}
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    private GameState currentState;
 
-    public event Action<GameState> OnGameStateChanged;
-
-    // for other scripts to check the state we are in
-    public GameState CurrentState()
+    // loads next level of the game
+    public void LoadNextLevel(string nextLevelName)
     {
-        return currentState;
+        SceneManager.LoadScene(nextLevelName);
     }
 
-    // update current state and notify subscribers
-    public void ChangeState(GameState newState)
-    {
-        // avoids unnecessary reassignment
-        if (currentState == newState)
-        {
-            return;
-        }
 
-        currentState = newState;
-        OnGameStateChanged?.Invoke(newState);
-    }
 }
