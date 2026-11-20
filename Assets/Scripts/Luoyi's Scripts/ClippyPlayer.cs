@@ -111,11 +111,13 @@ public class ClippyPlayer : MonoBehaviour
         }
     }
 
-    // Shoot a short invisible line downward. If it hits the ground layer, we are on the ground.
+    // Check a thin box under Clippy's feet. If it touches the ground layer, we are on the ground.
     bool IsOnGround()
     {
-        float distance = GetComponent<Collider2D>().bounds.extents.y + 0.1f;
-        return Physics2D.Raycast(transform.position, Vector2.down, distance, groundLayer);
+        Bounds b = GetComponent<Collider2D>().bounds;
+        Vector2 feet = new Vector2(b.center.x, b.min.y);         // bottom middle of Clippy
+        Vector2 size = new Vector2(b.size.x * 0.9f, 0.1f);       // almost as wide as Clippy, very thin
+        return Physics2D.BoxCast(feet, size, 0f, Vector2.down, 0.05f, groundLayer);
     }
 
     // Same idea, sideways. Returns -1 = wall on the left, 1 = wall on the right, 0 = no wall.
