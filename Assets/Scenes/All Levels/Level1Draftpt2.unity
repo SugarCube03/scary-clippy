@@ -564,11 +564,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 915427c5075424a26be04f7c2a40e6b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClippyPlayer
-  moveSpeed: 7
+  moveSpeed: 8
   jumpForce: 13
   interactRange: 1
   wallJumpPush: 6
   wallJumpTime: 0.2
+  wallGraceTime: 0.15
+  deathHeight: -10
   groundLayer:
     serializedVersion: 2
     m_Bits: 384
@@ -799,6 +801,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ccd31cda405b4704ad3727ad424920d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScreenPiece
+  itemId: key
+  destination: {fileID: 0}
 --- !u!212 &962082456
 SpriteRenderer:
   serializedVersion: 2
